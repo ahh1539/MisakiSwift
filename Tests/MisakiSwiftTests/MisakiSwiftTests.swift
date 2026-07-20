@@ -1,6 +1,13 @@
 import Testing
 @testable import MisakiSwift
 
+@Test func packageResourcesLoadFromModuleBundle() {
+  #expect(!DataResourcesUtil.loadGold(british: false).isEmpty)
+  #expect(!DataResourcesUtil.loadSilver(british: false).isEmpty)
+  #expect(!DataResourcesUtil.loadGold(british: true).isEmpty)
+  #expect(!DataResourcesUtil.loadSilver(british: true).isEmpty)
+}
+
 let texts: [(originalText: String, britishPhonetization: String, americanPhoneitization: String)] = [
   ("[Misaki](/misˈɑki/) is a G2P engine designed for [Kokoro](/kˈOkəɹO/) models.",
    "misˈɑki ɪz ɐ ʤˈiːtəpˈiː ˈɛnʤɪn dɪzˈInd fɔː kˈOkəɹO mˈɒdᵊlz.",
