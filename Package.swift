@@ -18,8 +18,8 @@ let package = Package(
   dependencies: [
     // Keep this aligned with KokoroSwift. MLX 0.30.6 fixes the iOS NAX
     // ConvTransposed1d overflow that corrupts longer Kokoro audio chunks.
-    .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.30.6"),
-    .package(url: "https://github.com/mlalma/MLXUtilsLibrary.git", exact: "0.0.6")
+    .package(url: "https://github.com/ahh1539/mlx-swift", exact: "0.30.6-junco.1"),
+    .package(url: "https://github.com/ahh1539/MLXUtilsLibrary.git", exact: "0.0.6-junco.1")
   ],
   targets: [
     .target(
