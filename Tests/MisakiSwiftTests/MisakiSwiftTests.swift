@@ -17,43 +17,64 @@ let texts: [(originalText: String, britishPhonetization: String, americanPhoneit
    "“tə ʤˈAmz mˈɔɹTəməɹ, ˌɛmˌɑɹsˌiˈɛs, fɹʌm hɪz fɹˈɛndz ʌv ðə sˌisˌiˈAʧ,” wʌz ɪnɡɹˈAvd əpˈɑn ɪt, wɪð ðə dˈAt “ˌAtˈin ˈATi fˈɔɹ.”")
 ]
 
-@Test func testStrings_BritishPhonetization() async throws {
-  let englishG2P = EnglishG2P(british: true)
-  
-  for pair in texts {
-    #expect(englishG2P.phonemize(text: pair.0).0 == pair.1)
+/// MLX G2P is stream-thread-local and needs a bundled metallib. Mac `swift test`
+/// hops threads and aborts; keep these on iOS where the app already pins MLX.
+#if os(iOS)
+@Suite("EnglishG2P", .serialized)
+struct EnglishG2PTests {
+  @Test func testStrings_BritishPhonetization() {
+    let englishG2P = EnglishG2P(british: true)
+
+    for pair in texts {
+      #expect(englishG2P.phonemize(text: pair.0).0 == pair.1)
+    }
+  }
+
+  @Test func testStrings_AmericanPhonetization() {
+    let englishG2P = EnglishG2P(british: false)
+
+    for pair in texts {
+      #expect(englishG2P.phonemize(text: pair.0).0 == pair.2)
+    }
+  }
+
+  @Test func testRetokenize_CurrencyWithFollowingTokens() {
+    let englishG2P = EnglishG2P(british: true)
+    let (result, _) = englishG2P.phonemize(text: "$50 is the price for this item")
+    #expect(!result.isEmpty)
+    #expect(result.contains("dˈɒlə"))
+  }
+
+  @Test func testRetokenize_CurrencyInMiddleOfSentence() {
+    let englishG2P = EnglishG2P(british: false)
+    let (result, _) = englishG2P.phonemize(text: "The total cost was $100 and we paid it yesterday")
+    #expect(!result.isEmpty)
+    #expect(result.contains("dˈɑləɹz"))
+  }
+
+  @Test func testRetokenize_MultipleCurrenciesInText() {
+    let englishG2P = EnglishG2P(british: true)
+    let (result, _) = englishG2P.phonemize(text: "I exchanged $200 for €150 at the bank today")
+    #expect(!result.isEmpty)
+    #expect(result.contains("dˈɒlə"))
+    #expect(result.contains("jˈʊəɹQz"))
+  }
+
+  @Test func oovFallbackIsMemoizedAcrossRepeatedWords() {
+    let g2p = EnglishG2P(british: false)
+    let word = "Xyzzyqwertyblorple"
+
+    let first = g2p.phonemize(text: word)
+    let firstStats = g2p.consumeFallbackStats()
+    let second = g2p.phonemize(text: word)
+    let secondStats = g2p.consumeFallbackStats()
+
+    #expect(first.0 == second.0)
+    #expect(firstStats.lookups >= 1)
+    #expect(firstStats.hits == 0)
+    #expect(secondStats.lookups == firstStats.lookups)
+    #expect(secondStats.hits == secondStats.lookups)
+    #expect(secondStats.hits >= 1)
   }
 }
-
-@Test func testStrings_AmericanPhonetization() async throws {
-  let englishG2P = EnglishG2P(british: false)
-
-  for pair in texts {
-    #expect(englishG2P.phonemize(text: pair.0).0 == pair.2)
-  }
-}
-
-// Retokenize Currency Index Fix Tests
-@Test func testRetokenize_CurrencyWithFollowingTokens() async throws {
-  let englishG2P = EnglishG2P(british: true)
-  let (result, _) = englishG2P.phonemize(text: "$50 is the price for this item")
-  #expect(!result.isEmpty)
-  #expect(result.contains("dˈɒlə"))  // "dollar" phoneme should be present
-}
-
-// Currency appearing mid-sentence with multiple tokens before and after
-@Test func testRetokenize_CurrencyInMiddleOfSentence() async throws {
-  let englishG2P = EnglishG2P(british: false)
-  let (result, _) = englishG2P.phonemize(text: "The total cost was $100 and we paid it yesterday")
-  #expect(!result.isEmpty)
-  #expect(result.contains("dˈɑləɹz"))  // American "dollar" phoneme
-}
-
-// Multiple currency symbols trigger the currency code path multiple times
-@Test func testRetokenize_MultipleCurrenciesInText() async throws {
-  let englishG2P = EnglishG2P(british: true)
-  let (result, _) = englishG2P.phonemize(text: "I exchanged $200 for €150 at the bank today")
-  #expect(!result.isEmpty)
-  #expect(result.contains("dˈɒlə"))    // "dollar" phoneme
-  #expect(result.contains("jˈʊəɹQz"))  // "euro" phoneme
-}
+#endif

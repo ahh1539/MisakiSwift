@@ -12,6 +12,7 @@ final class EnglishFallbackNetwork {
   private let tokenToPhoneme: [Int: Character]
 
   private let british: Bool
+  private var cache = G2PFallbackCache()
     
   init(british: Bool) {    
     configuration = EnglishFallbackNetwork.loadConfig(british: british)!
@@ -63,12 +64,22 @@ final class EnglishFallbackNetwork {
     return phonemes
   }
   
+  func consumeStats() -> G2PFallbackStats {
+    cache.consumeStats()
+  }
+
   func callAsFunction(_ word: MToken) -> (phoneme: String, rating: Int) {
-    let tokenIds = graphemesToTokens(word.text)
+    let key = word.text
+    if let cached = cache.lookup(key) {
+      return (cached.phoneme, cached.rating)
+    }
+
+    let tokenIds = graphemesToTokens(key)
     let inputIds = MLXArray(tokenIds).reshaped([1, tokenIds.count])
     let generatedIds = model.generate(inputIds: inputIds)
     let outputText = tokensToPhonemes(generatedIds.asArray(Int.self))
-    
+    cache.store(key, phoneme: outputText, rating: 1)
+
     return (outputText, 1)
   }
   
